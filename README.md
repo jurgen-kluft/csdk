@@ -5,6 +5,7 @@ This package provides detailed information for the Clay build system in terms of
 - Windows; provides information about Visual Studio and the Windows SDK
 - Linux; provides information about Clang
 - macOS; provides information about Clang
+- Espressif; provides information about the Espressif toolchain for Esp32 and Esp8266
 
 ## Windows
 
