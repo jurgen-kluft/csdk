@@ -6,6 +6,20 @@ import (
 )
 
 func getVarsLinux(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, vars *corepkg.Vars) {
+	// Using the buildTarget and buildConfig, we iterate over the platformVarsWindows map and
+	// set the appropriate variables in the vars object. Some variables may depend on the buildConfig.
+	for key, varList := range platformVarsLinux {
+		for _, v := range varList {
+			// If the variable has a Config field, we check if it matches the current buildConfig
+			if len(v.Config) == 0 || denv.BuildConfigFromString(v.Config).Contains(buildConfig) {
+				if v.Append {
+					vars.Append(key, v.Value...)
+				} else {
+					vars.Set(key, v.Value...)
+				}
+			}
+		}
+	}
 
 }
 

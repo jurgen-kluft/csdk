@@ -6,7 +6,6 @@ import (
 )
 
 func getVarsWindows(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, vars *corepkg.Vars) {
-
 	// Using the buildTarget and buildConfig, we iterate over the platformVarsWindows map and
 	// set the appropriate variables in the vars object. Some variables may depend on the buildConfig.
 	for key, varList := range platformVarsWindows {

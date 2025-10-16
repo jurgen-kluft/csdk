@@ -6,28 +6,49 @@ import (
 )
 
 func getVarsMac(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, vars *corepkg.Vars) {
+	// Using the buildTarget and buildConfig, we iterate over the platformVarsWindows map and
+	// set the appropriate variables in the vars object. Some variables may depend on the buildConfig.
+	for key, varList := range platformVarsMacOSX {
+		for _, v := range varList {
+			// If the variable has a Config field, we check if it matches the current buildConfig
+			if len(v.Config) == 0 || denv.BuildConfigFromString(v.Config).Contains(buildConfig) {
+				if v.Append {
+					vars.Append(key, v.Value...)
+				} else {
+					vars.Set(key, v.Value...)
+				}
+			}
+		}
+	}
+}
 
+func Value(value string) []denv.Var {
+	return []denv.Var{{Value: []string{value}}}
+}
+func Values(values ...string) []denv.Var {
+	return []denv.Var{{Value: values}}
 }
 
 var platformVarsMacOSX = map[string][]denv.Var{
 	// # Extensions
-	"build.obj.prefix": {{Value: []string{""}}},       // Object file prefix
-	"build.obj.suffix": {{Value: []string{".o"}}},     // Object file suffix
-	"build.dep.prefix": {{Value: []string{""}}},       // Dependency file prefix
-	"build.dep.suffix": {{Value: []string{".d"}}},     // Dependency file suffix
-	"build.dll.prefix": {{Value: []string{"lib"}}},    // Dynamic library file prefix
-	"build.dll.suffix": {{Value: []string{".dylib"}}}, // Dynamic library file suffix
-	"build.lib.prefix": {{Value: []string{"lib"}}},    // Static library file prefix
-	"build.lib.suffix": {{Value: []string{".a"}}},     // Static library file suffix
-	"build.exe.prefix": {{Value: []string{""}}},       // Executable file prefix (none for macOS)
-	"build.exe.suffix": {{Value: []string{""}}},       // Executable file suffix (none for macOS)
+	//"build.obj.prefix": {{Value: []string{""}}},       // Object file prefix
+	"build.obj.prefix": Value(""),       // Object file prefix
+	"build.obj.suffix": Value(".o"),     // Object file suffix
+	"build.dep.prefix": Value(""),       // Dependency file prefix
+	"build.dep.suffix": Value(".d"),     // Dependency file suffix
+	"build.dll.prefix": Value("lib"),    // Dynamic library file prefix
+	"build.dll.suffix": Value(".dylib"), // Dynamic library file suffix
+	"build.lib.prefix": Value("lib"),    // Static library file prefix
+	"build.lib.suffix": Value(".a"),     // Static library file suffix
+	"build.exe.prefix": Value(""),       // Executable file prefix (none for macOS)
+	"build.exe.suffix": Value(""),       // Executable file suffix (none for macOS)
 
 	// # Frameworks
-	"compiler.frameworks.default": {{Value: []string{"-framework", "Foundation", "-framework", "CoreFoundation", "-framework", "IOKit", "-framework", "CoreServices"}}},
-	"compiler.frameworks.metal":   {{Value: []string{"-framework", "Metal", "-framework", "MetalPerformanceShaders", "-framework", "MetalKit"}}},
-	"compiler.frameworks.cocoa":   {{Value: []string{"-framework", "Cocoa"}}},
-	"compiler.frameworks.appkit":  {{Value: []string{"-framework", "AppKit"}}},
-	"compiler.frameworks.uikit":   {{Value: []string{"-framework", "UIKit"}}},
+	"compiler.frameworks.default": Values("-framework", "Foundation", "-framework", "CoreFoundation", "-framework", "IOKit", "-framework", "CoreServices"),
+	"compiler.frameworks.metal":   Values("-framework", "Metal", "-framework", "MetalPerformanceShaders", "-framework", "MetalKit"),
+	"compiler.frameworks.cocoa":   Values("-framework", "Cocoa"),
+	"compiler.frameworks.appkit":  Values("-framework", "AppKit"),
+	"compiler.frameworks.uikit":   Values("-framework", "UIKit"),
 
 	// # Frameworks, current
 	"compiler.frameworks": {{Value: []string{"{compiler.frameworks.default}"}}},
@@ -46,7 +67,7 @@ var platformVarsMacOSX = map[string][]denv.Var{
 	},
 
 	// # Compile Warning Levels
-	"compiler.warning_flags": {{Value: []string{"-Wall", "-Wextra"}}},
+	"compiler.warning_flags": {{Value: []string{"-Wall", "-Wextra", "-Wno-unused-function", "-Wno-unused-parameter"}}},
 
 	// # Compilers
 	"compiler.c.cmd":    {{Value: []string{"clang"}}},
@@ -60,50 +81,49 @@ var platformVarsMacOSX = map[string][]denv.Var{
 	"compiler.cpreprocessor.flags": {{Value: []string{""}}},
 
 	"compiler.c.flags": {
-		{Value: []string{`-c","-MMD","{compiler.warning_flags}","{compiler.common_werror_flags}","{compiler.floating_point_flags}","{compiler.c.flags}","{build.cpp_standard}`}},
+		{Value: []string{"-c", "-MMD", "{compiler.warning_flags}", "{compiler.common_werror_flags}", "{compiler.floating_point_flags}", "{build.c_standard}"}},
 		{Value: []string{"-g", "-O0", "-fno-omit-frame-pointer", "-D_DEBUG"}, Config: "debug-*-*", Append: true},
 		{Value: []string{"-O2", "-finline-functions", "-ffunction-sections", "-DNDEBUG"}, Config: "release-*-*", Append: true},
 		{Value: []string{"-fexceptions"}, Config: "*-*-test", Append: true},
 	},
 
 	"compiler.cpp.flags": {
-		{Value: []string{`-c","-MMD","{compiler.warning_flags}","{compiler.common_werror_flags}","{compiler.floating_point_flags}","{compiler.cpp.flags}`}},
+		{Value: []string{"-c", "-MMD", "{compiler.warning_flags}", "{compiler.common_werror_flags}", "{compiler.floating_point_flags}", "{build.cpp_standard}"}},
 		{Value: []string{"-g", "-O0", "-fno-omit-frame-pointer", "-D_DEBUG"}, Config: "debug-*-*", Append: true},
 		{Value: []string{"-O2", "-finline-functions", "-ffunction-sections", "-DNDEBUG"}, Config: "release-*-*", Append: true},
 		{Value: []string{"-fexceptions"}, Config: "*-*-test", Append: true},
 	},
 
 	"compiler.asm.flags": {
-		{Value: []string{"-c", "-x", "-MMD", "assembler-with-cpp", "{compiler.warning_flags}", "{compiler.asm.flags}"}},
+		{Value: []string{"-c", "-x", "-MMD", "assembler-with-cpp", "{compiler.warning_flags}"}},
 		{Value: []string{"-g", "-O0", "-fno-omit-frame-pointer", "-D_DEBUG"}, Config: "debug-*-*", Append: true},
 		{Value: []string{"-O2", "-finline-functions", "-ffunction-sections", "-DNDEBUG"}, Config: "release-*-*", Append: true},
 	},
 
 	"compiler.lib.flags": {
-		{Value: []string{"-rs", "{compiler.lib.flags}"}},
-		{Value: []string{""}, Config: "debug-*-*", Append: true},
+		{Value: []string{"-rc"}},
+		{Value: []string{}, Config: "debug-*-*", Append: true},
 	},
 
 	"compiler.link.flags": {
-		{Value: []string{"-Wl,--Map={build.path}/{build.project_name}.map", "{compiler.link.flags}", "{compiler.frameworks}"}},
-		{Value: []string{"-Wl,-nostrip"}, Config: "*-dev-*", Append: true},
-		{Value: []string{"-flto", "-Wl,-Strip-all"}, Config: "*-final-*", Append: true},
+		{Value: []string{"{library.paths}", "{library.files}", "{compiler.frameworks}"}},
+		{Value: []string{"-flto"}, Config: "*-final-*", Append: true},
 	},
 
 	// ## Compile c files
-	"recipe.c.pattern": {{Value: []string{`{compiler.c.cmd}`, "{compiler.c.flags}", "{build.extra_flags}", "{compiler.cpreprocessor.flags}", "{build.defines}", "{include_paths}"}}},
+	"recipe.c.pattern": {{Value: []string{"{compiler.c.cmd}", "{compiler.c.flags}", "{build.extra_flags}", "{compiler.cpreprocessor.flags}", "{build.defines}", "{build.includes}"}}},
 
 	// ## Compile c++ files
-	"recipe.cpp.pattern": {{Value: []string{"{compiler.cpp.cmd}", "{compiler.cpp.flags}", "{build.extra_flags}", "{compiler.cpreprocessor.flags}", "{build.defines}", "{include_paths}"}}},
+	"recipe.cpp.pattern": {{Value: []string{"{compiler.cpp.cmd}", "{compiler.cpp.flags}", "{build.extra_flags}", "{compiler.cpreprocessor.flags}", "{build.defines}", "{build.includes}"}}},
 
 	// ## Compile S files
-	"recipe.asm.pattern": {{Value: []string{"{compiler.asm.cmd}", "{compiler.asm.flags}", "{build.extra_flags}", "{compiler.cpreprocessor.flags}", "{build.defines}", "{include_paths}"}}},
+	"recipe.asm.pattern": {{Value: []string{"{compiler.asm.cmd}", "{compiler.asm.flags}", "{build.extra_flags}", "{compiler.cpreprocessor.flags}", "{build.defines}", "{build.includes}"}}},
 
 	// ## Create archives
-	"recipe.ar.pattern": {{Value: []string{"{compiler.lib.cmd}", "{compiler.lib.flags}", `"{archive_file_path}"`, "{object_files}"}}},
+	"recipe.ar.pattern": {{Value: []string{"{compiler.lib.cmd}", "{compiler.lib.flags}"}}},
 
 	// ## Combine gc-sections, archives, and objects
-	"recipe.link.pattern": {{Value: []string{"{compiler.link.cmd}", "{compiler.link.flags}", "-Wl,--start-group", "{object_files}", "{build.extra_libs}", "-Wl,--end-group", "-Wl,-EL", "-o", `"{build.path}/{build.project_name}{build.link.extension}"`}}},
+	"recipe.link.pattern": {{Value: []string{"{compiler.link.cmd}", "{compiler.link.flags}"}}},
 
 	// ## Compute size (text, data, bss)
 	"recipe.size.pattern": {{Value: []string{"{compiler.size.cmd}", "--format=berkeley", `"{build.path}/{build.project_name}{build.link.extension}"`}}},
@@ -142,6 +162,6 @@ var platformVarsMacOSX = map[string][]denv.Var{
 		{Value: []string{"-ffunction-sections"}, Config: "release-*-*"},
 	},
 
-	"build.cpp_standard": {{Value: []string{"-std=c++17"}}},
 	"build.c_standard":   {{Value: []string{"-std=c17"}}},
+	"build.cpp_standard": {{Value: []string{"-std=c++17"}}},
 }

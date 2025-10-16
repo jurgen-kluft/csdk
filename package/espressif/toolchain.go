@@ -65,8 +65,6 @@ func PrintAllFlashSizes(toolchain *toolchain, arch string, boardName string) (er
 	// 	flashDefMatch = `\.menu\.(?:FlashSize|eesz)\.([^\.]+)=(.+)`
 	// }
 
-	// Get the parsed board
-	//var board *board
 	if i, ok := toolchain.BoardNameToIndex[boardName]; ok {
 		board := toolchain.ListOfBoards[i]
 

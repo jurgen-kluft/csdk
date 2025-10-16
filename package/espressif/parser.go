@@ -499,7 +499,7 @@ func sdkPath(arch string) string {
 	return sdkPath
 }
 
-func newToolchain(arch string) *toolchain {
+func NewToolchain(arch string) *toolchain {
 	switch arch {
 	case "esp32":
 		espSdkPath := sdkPath("esp32")
@@ -546,7 +546,7 @@ var toolchainFormatVersion = "1.0"
 func ParseToolchain(arch string) (toolchain *toolchain, err error) {
 	// Can we figure out if we already have a esp32.json or esp8266.json file and if it is up to date?
 	// If so, we can load that file instead of parsing the boards.txt and platform.txt files again
-	toolchain = newToolchain(arch)
+	toolchain = NewToolchain(arch)
 	toolchain.FormatVersion = toolchainFormatVersion
 
 	archJsonFilepath := filepath.Join("target", arch+".json")
@@ -608,7 +608,7 @@ func (t *toolchain) ResolveVariables(board *board, buildPath string) error {
 	board.Menu.RegisterVars(boardVars)
 	boardVars.JoinMap(t.Platform.Vars)
 
-	board.Vars = boardVars.AsMap()
+	board.Vars = boardVars.ConvertToMap()
 	return nil
 }
 

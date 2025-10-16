@@ -10,10 +10,9 @@ import (
 // 	"build.project_name": "MyProject", // Name of the project (used for naming output files)
 // 	"build.arch":         "x64",       // Architecture: x86, x64, arm64
 // 	"build.defines":      "",          // Additional preprocessor defines
-// 	"include_paths":      "",          // Additional include paths for the compiler
+// 	"build.includes":      "",          // Additional include paths for the compiler
 
-func getVars(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, hardwareId string) (vars *corepkg.Vars) {
-	vars = corepkg.NewVars(corepkg.VarsFormatCurlyBraces)
+func getVars(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, hardwareId string, vars *corepkg.Vars) {
 	if buildTarget.Windows() {
 		getVarsWindows(buildTarget, buildConfig, vars)
 	} else if buildTarget.Mac() {
@@ -23,5 +22,4 @@ func getVars(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, hardwar
 	} else if buildTarget.Arduino() {
 		getVarsArduino(buildTarget, buildConfig, hardwareId, vars)
 	}
-	return
 }
