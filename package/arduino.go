@@ -8,6 +8,6 @@ import (
 
 func getVarsArduino(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, hardwareId string, vars *corepkg.Vars) {
 	if tc, err := cespressif.ParseToolchain(buildTarget.Arch().String()); err == nil {
-		cespressif.GetVars(tc, hardwareId)
+		cespressif.GetVars(tc, hardwareId, vars)
 	}
 }

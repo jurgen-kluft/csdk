@@ -121,13 +121,14 @@ func PrintAllBoardInfos(toolchain *toolchain, boardName string, max int) error {
 	if len(closest) > 0 {
 		for _, match := range closest {
 			if board := toolchain.GetBoardByName(match); board != nil {
-				toolchain.ResolveVariables(board, "buildpath/")
+				vars := corepkg.NewVars(corepkg.VarsFormatCurlyBraces)
+				toolchain.ResolveVariablesForBoard(board, vars)
 				corepkg.LogInfo("----------------------- " + board.Name + " -----------------------")
 				corepkg.LogInfof("Board: %s", board.Name)
 				corepkg.LogInfof("Description: %s", board.Description)
-				for _, key := range board.Vars {
+				for _, key := range vars.Keys {
 					if strings.HasPrefix(key, "build.") || strings.HasPrefix(key, "upload.") {
-						values := board.Vars[key]
+						values := vars.Values[vars.KeyToIndex[key]]
 						corepkg.LogInfof("%s:%s", key, values)
 					}
 				}

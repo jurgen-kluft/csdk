@@ -2,6 +2,7 @@ package cespressif
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -370,19 +371,19 @@ func (m *boardMenu) RegisterVars(vars *corepkg.Vars) {
 }
 
 type board struct {
-	Name        string            // The name of the board
-	Description string            // The description of the board
-	SdkPath     string            // The path to the SDK
-	Menu        *boardMenu        // Menu options for the board
-	Vars        map[string]string // Variables for the board
+	Name        string     // The name of the board
+	Description string     // The description of the board
+	SdkPath     string     // The path to the SDK
+	Menu        *boardMenu // Menu options for the board
+	Vars        *corepkg.Vars
 }
 
 func newBoard() *board {
-	return &board{Menu: newBoardMenu(), Vars: make(map[string]string)}
+	return &board{Menu: newBoardMenu(), Vars: corepkg.NewVars(corepkg.VarsFormatCurlyBraces)}
 }
 
 func newBoardName(name, description, sdkPath string) *board {
-	return &board{Name: name, Description: description, SdkPath: sdkPath, Menu: newBoardMenu(), Vars: make(map[string]string)}
+	return &board{Name: name, Description: description, SdkPath: sdkPath, Menu: newBoardMenu(), Vars: corepkg.NewVars(corepkg.VarsFormatCurlyBraces)}
 }
 
 type toolchain struct {
@@ -407,7 +408,7 @@ func encodeJsonBoard(encoder *corepkg.JsonEncoder, object *board) {
 		encoder.WriteField("descr", object.Description)
 		encoder.WriteField("sdk", object.SdkPath)
 		encodeJsonBoardMenu(encoder, "menu", object.Menu)
-		encoder.WriteStringMapString("vars", object.Vars)
+		object.Vars.EncodeJson("vars", encoder)
 	}
 	encoder.EndObject()
 }
@@ -419,7 +420,10 @@ func decodeJsonBoard(decoder *corepkg.JsonDecoder) *board {
 		"descr": func(decoder *corepkg.JsonDecoder) { b.Description = decoder.DecodeString() },
 		"sdk":   func(decoder *corepkg.JsonDecoder) { b.SdkPath = decoder.DecodeString() },
 		"menu":  func(decoder *corepkg.JsonDecoder) { b.Menu = decodeJsonBoardMenu(decoder) },
-		"vars":  func(decoder *corepkg.JsonDecoder) { b.Vars = decoder.DecodeStringMapString() },
+		"vars": func(decoder *corepkg.JsonDecoder) {
+			b.Vars = corepkg.NewVars(corepkg.VarsFormatCurlyBraces)
+			b.Vars.DecodeJson(decoder)
+		},
 	}
 	if err := decoder.Decode(fields); err != nil {
 		corepkg.LogErrorf(err, "error decoding board: %s", err.Error())
@@ -541,7 +545,7 @@ func (t *toolchain) GetBoardByName(name string) *board {
 	return nil
 }
 
-var toolchainFormatVersion = "1.0"
+var toolchainFormatVersion = "1.0.5"
 
 func ParseToolchain(arch string) (toolchain *toolchain, err error) {
 	// Can we figure out if we already have a esp32.json or esp8266.json file and if it is up to date?
@@ -549,7 +553,7 @@ func ParseToolchain(arch string) (toolchain *toolchain, err error) {
 	toolchain = NewToolchain(arch)
 	toolchain.FormatVersion = toolchainFormatVersion
 
-	archJsonFilepath := filepath.Join("target", arch+".json")
+	archJsonFilepath := filepath.Join(arch + ".json")
 	err = toolchain.loadJson(archJsonFilepath)
 
 	boardsFilepath := filepath.Join(toolchain.SdkPath, "boards.txt")
@@ -587,28 +591,54 @@ func ParseToolchain(arch string) (toolchain *toolchain, err error) {
 	return toolchain, nil
 }
 
-func GetVars(toolchain *toolchain, boardName string) error {
-	return nil
+func GetVars(toolchain *toolchain, boardName string, vars *corepkg.Vars) error {
+
+	// get board by name
+	board := toolchain.GetBoardByName(boardName)
+	if board == nil {
+		return corepkg.LogError(fmt.Errorf("board '%s' not found in toolchain '%s'", boardName, toolchain.Name), "board not found")
+	}
+
+	return toolchain.ResolveVariablesForBoard(board, vars)
 }
 
-func (t *toolchain) ResolveVariables(board *board, buildPath string) error {
+func (t *toolchain) ResolveVariablesForBoard(board *board, vars *corepkg.Vars) error {
 
-	boardVars := corepkg.NewVars(corepkg.VarsFormatCurlyBraces)
-	boardVars.Set("runtime.os", runtime.GOOS)
-	boardVars.Set("runtime.platform.path", t.SdkPath)
-	boardVars.Set("runtime.ide.version", "10607")
-	boardVars.Set("board.name", board.Name)
+	vars.Set("runtime.os", runtime.GOOS)
+	vars.Set("runtime.platform.path", t.SdkPath)
+	vars.Set("runtime.ide.version", "10607")
+	vars.Set("board.name", board.Name)
 
 	// Add all recipes to the board
 	for _, recipe := range t.Platform.Recipes {
-		boardVars.Set(recipe.Name, recipe.Cmd)
+		vars.Set(recipe.Name, recipe.Cmd)
 	}
 
-	boardVars.JoinMap(board.Vars)
-	board.Menu.RegisterVars(boardVars)
-	boardVars.JoinMap(t.Platform.Vars)
+	vars.Join(board.Vars)
+	board.Menu.RegisterVars(vars)
+	vars.JoinMap(t.Platform.Vars)
 
-	board.Vars = boardVars.ConvertToMap()
+	for _, key := range vars.Keys {
+		if strings.HasPrefix(key, "tools.") || strings.HasPrefix(key, "compiler.") || strings.HasPrefix(key, "build.") || strings.HasPrefix(key, "recipe.") {
+			oldValues := vars.Values[vars.KeyToIndex[key]]
+			newValues := make([]string, 0, len(oldValues))
+			for _, value := range oldValues {
+				// For a certain set of key types, we should (smartly) split the value by space
+				// The following key types are known to have command-line values:
+				// - tools.
+				// - compiler.
+				// - build.
+				// - recipe.
+				// We are going to split the value by space, but we need to take care of quoted values
+				// e.g. tools.esptool_py.cmd="python" -m esptool ...
+				// We will use a simple state machine to parse the value
+				args := parseArgs(value, true)
+				newValues = append(newValues, args...)
+			}
+			vars.Values[vars.KeyToIndex[key]] = newValues
+		}
+	}
+
 	return nil
 }
 
@@ -669,7 +699,7 @@ func (t *toolchain) parseBoardsFile(boardsFile string) error {
 		} else {
 			key = strings.TrimPrefix(key, currentBoard.Name)
 			key = strings.TrimPrefix(key, ".") // Remove the leading dot if present
-			currentBoard.Vars[key] = value
+			currentBoard.Vars.Set(key, value)
 		}
 	}
 
@@ -689,27 +719,73 @@ func (t *toolchain) parseBoardsFile(boardsFile string) error {
 	return nil
 }
 
-func parseCmdAndArgs(cmd string) (string, []string) {
-	// The arguments follow the first "cmd" part, also the arguments need to be split by ' '
-	args := strings.SplitN(cmd, " ", -1)
-	cmd = strings.TrimFunc(args[0], func(r rune) bool {
-		return r == '"' || r == '\'' || r == ' '
-	})
-	if len(args) > 1 {
-		return cmd, args[1:]
+func parseCmdAndArgs(cmdline string, removeEmptyEntries bool) (string, []string) {
+	args := parseArgs(cmdline, removeEmptyEntries)
+	if len(args) == 0 {
+		return "", []string{}
 	}
-	return cmd, []string{}
+	return args[0], args[1:]
 }
 
-func parseArgs(args string) []string {
-	// The arguments follow the first "cmd" part, also the arguments need to be split by ' '
-	argsList := strings.Split(args, " ")
-	for i := 0; i < len(argsList); i++ {
-		argsList[i] = strings.TrimFunc(argsList[i], func(r rune) bool {
-			return r == '"' || r == '\'' || r == ' '
-		})
+func parseArgs(cmdline string, removeEmptyEntries bool) []string {
+	var args []string
+
+	// Split the cmdline into arguments by ' ', taking care of quoted strings and brackets
+	// Couple of rules:
+	// - When encountering a '{'/'[, we ignore current state and look for the matching '}'/']'
+	// - When encountering a "/'/`, we ignore current state and look for the matching "/'/`, but the above rule still applies
+	state := make([]rune, 0)
+
+	b := 0
+	for e, c := range cmdline {
+		if c == ' ' && len(state) == 0 {
+			segment := strings.TrimSpace(cmdline[b:e])
+			if len(segment) > 0 || !removeEmptyEntries {
+				segment = corepkg.StrTrimDelimiters(segment, '"')
+				//segment = corepkg.StrTrimDelimiters(segment, '\'')
+				args = append(args, segment)
+			}
+			b = e + 1
+		} else if c == '\\' {
+			// Escape character, skip the next character
+			e++
+		} else {
+			if len(state) == 0 {
+				switch c {
+				case '"', '\'':
+					state = append(state, c)
+				case '{':
+					state = append(state, '}')
+				case '[':
+					state = append(state, ']')
+				}
+			} else {
+				top := state[len(state)-1]
+				if top == c {
+					state = state[:len(state)-1]
+				} else {
+					switch c {
+					case '"', '\'':
+						state = append(state, c)
+					case '{':
+						state = append(state, '}')
+					case '[':
+						state = append(state, ']')
+					}
+				}
+			}
+		}
 	}
-	return argsList
+
+	// Add the last segment
+	segment := strings.TrimSpace(cmdline[b:])
+	if len(segment) > 0 || !removeEmptyEntries {
+		segment = corepkg.StrTrimDelimiters(segment, '"')
+		//segment = corepkg.StrTrimDelimiters(segment, '\'')
+		args = append(args, segment)
+	}
+
+	return args
 }
 
 func (t *toolchain) parsePlatformFile(platformFile string) error {
@@ -806,9 +882,9 @@ func (t *toolchain) parsePlatformFile(platformFile string) error {
 					}
 					// Now we can set the variable based on the toolVar
 					if keyParts[len(keyParts)-1] == "pattern" {
-						function.Cmd, function.Args = parseCmdAndArgs(value)
+						function.Cmd, function.Args = parseCmdAndArgs(value, true)
 					} else if keyParts[len(keyParts)-1] == "pattern_args" {
-						function.Args = append(function.Args, parseArgs(value)...)
+						function.Args = append(function.Args, parseArgs(value, true)...)
 						function.Vars[strings.Join(keyParts[3:], ".")] = value
 					} else {
 						function.Vars[strings.Join(keyParts[3:], ".")] = value
