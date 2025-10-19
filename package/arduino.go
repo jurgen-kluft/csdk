@@ -13,8 +13,26 @@ func getVarsArduino(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, 
 		// Override some specific settings for Arduino based on build configuration
 		if buildConfig.IsDebug() {
 			vars.Set("compiler.optimization_flags", "{compiler.optimization_flags.debug}")
+			vars.Append("build.defines", "-DTARGET_DEBUG")
 		} else if buildConfig.IsRelease() {
 			vars.Set("compiler.optimization_flags", "{compiler.optimization_flags.release}")
+			vars.Append("build.defines", "-DTARGET_RELEASE")
 		}
+
+		if buildConfig.IsFinal() {
+			vars.Append("build.defines", "-DTARGET_FINAL")
+		}
+
+		if buildConfig.IsTest() {
+			vars.Append("build.defines", "-DTARGET_TEST")
+		}
+
+		vars.Append("build.defines", "-DTARGET_ARDUINO")
+		if buildTarget.Esp32() {
+			vars.Append("build.defines", "-DTARGET_ESP32")
+		} else if buildTarget.Esp8266() {
+			vars.Append("build.defines", "-DTARGET_ESP8266")
+		}
+
 	}
 }
