@@ -172,15 +172,15 @@ var platformVarsWindows = map[string][]denv.Var{
 	// # Build Options
 
 	"build.code_debug":  {{Value: []string{`0`}}},                                                   // Code debug level (0: none, 1: basic, 2: full)
-	"build.extra_flags": {{Append: true, Value: []string{`-DCORE_DEBUG_LEVEL={build.code_debug}`}}}, //
+	"build.extra_flags": {{Append: true, Value: []string{`/DCORE_DEBUG_LEVEL={build.code_debug}`}}}, //
 	"build.extra_libs":  {{Append: true, Value: []string{``}}},                                      //
 
 	"build.defines": {
-		{Config: "*-*-*", Append: true, Value: []string{`-DTARGET_PC`}},            // Define target as PC
-		{Config: "debug-*-*", Append: true, Value: []string{`-DTARGET_DEBUG`}},     //
-		{Config: "release-*-*", Append: true, Value: []string{`-DTARGET_RELEASE`}}, //
-		{Config: "*-final-*", Append: true, Value: []string{`-DTARGET_FINAL`}},     //
-		{Config: "*-*-test", Append: true, Value: []string{`-DTARGET_TEST`}},       //
+		{Config: "*-*-*", Append: true, Value: []string{`/DTARGET_PC`}},            // Define target as PC
+		{Config: "debug-*-*", Append: true, Value: []string{`/DTARGET_DEBUG`}},     //
+		{Config: "release-*-*", Append: true, Value: []string{`/DTARGET_RELEASE`}}, //
+		{Config: "*-final-*", Append: true, Value: []string{`/DTARGET_FINAL`}},     //
+		{Config: "*-*-test", Append: true, Value: []string{`/DTARGET_TEST`}},       //
 	},
 
 	"build.warnings": {{Append: true, Value: []string{``}}},
