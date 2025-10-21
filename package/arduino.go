@@ -33,9 +33,9 @@ func getVarsArduino(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, 
 			defines = append(defines, "-DTARGET_ESP32")
 		} else if buildTarget.Esp8266() {
 			defines = append(defines, "-DTARGET_ESP8266")
+			vars.Prepend("compiler.cpreprocessor.flags", "{build.defines}")
 		}
 
-		vars.Prepend("compiler.cpreprocessor.flags", "{build.defines}")
 		vars.Append("build.defines", defines...)
 	}
 }
