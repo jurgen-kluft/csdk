@@ -15,9 +15,11 @@ func getVarsArduino(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, 
 		if buildConfig.IsDebug() {
 			vars.Set("compiler.optimization_flags", "{compiler.optimization_flags.debug}")
 			defines = append(defines, "-DTARGET_DEBUG")
+			vars.Set("build.code_debug", "1")
 		} else if buildConfig.IsRelease() {
 			vars.Set("compiler.optimization_flags", "{compiler.optimization_flags.release}")
 			defines = append(defines, "-DTARGET_RELEASE")
+			vars.Set("build.code_debug", "0")
 		}
 
 		if buildConfig.IsFinal() {
