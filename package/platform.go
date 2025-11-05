@@ -23,3 +23,11 @@ func getVars(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, hardwar
 		getVarsArduino(buildTarget, buildConfig, hardwareId, vars)
 	}
 }
+
+func Value(value string) []denv.Var {
+	return []denv.Var{{Value: []string{value}}}
+}
+
+func Values(values ...string) []denv.Var {
+	return []denv.Var{{Value: values}}
+}

@@ -6,6 +6,11 @@ import (
 )
 
 func getVarsWindows(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, vars *corepkg.Vars) {
+
+	// TODO
+	//    - figure out the Windows SDK versions dynamically
+	//    - figure out the MSVC versions dynamically
+
 	// Using the buildTarget and buildConfig, we iterate over the platformVarsWindows map and
 	// set the appropriate variables in the vars object. Some variables may depend on the buildConfig.
 	for key, varList := range platformVarsWindows {
@@ -85,12 +90,12 @@ var platformVarsWindows = map[string][]denv.Var{
 	"compiler.lib.extra_flags":    {{Value: []string{""}}},
 
 	// # Compilers (Microsoft Visual Studio)
-	"compiler.c.cmd":    {{Value: []string{"cl"}}},
-	"compiler.cpp.cmd":  {{Value: []string{"cl"}}},
-	"compiler.asm.cmd":  {{Value: []string{"asm"}}},
-	"compiler.lib.cmd":  {{Value: []string{"lib"}}},
-	"compiler.link.cmd": {{Value: []string{"link"}}},
-	"compiler.size.cmd": {{Value: []string{"size"}}},
+	"compiler.c.cmd":    {{Value: []string{"cl.exe"}}},
+	"compiler.cpp.cmd":  {{Value: []string{"cl.exe"}}},
+	"compiler.asm.cmd":  {{Value: []string{"cl.exe"}}},
+	"compiler.lib.cmd":  {{Value: []string{"lib.exe"}}},
+	"compiler.link.cmd": {{Value: []string{"link.exe"}}},
+	"compiler.size.cmd": {{Value: []string{"size.exe"}}},
 
 	// ## Compile c files
 	"recipe.c.pattern": {{Value: []string{`"{compiler.c.cmd}"`, "{compiler.c.extra_flags}", "{compiler.c.flags}", "{build.warnings}", "{build.optimize}", "{build.extra_flags}", "{compiler.cpreprocessor.flags}", "{include_paths}"}}},

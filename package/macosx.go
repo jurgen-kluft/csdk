@@ -22,13 +22,6 @@ func getVarsMac(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, vars
 	}
 }
 
-func Value(value string) []denv.Var {
-	return []denv.Var{{Value: []string{value}}}
-}
-func Values(values ...string) []denv.Var {
-	return []denv.Var{{Value: values}}
-}
-
 var platformVarsMacOSX = map[string][]denv.Var{
 	// # Extensions
 	//"build.obj.prefix": {{Value: []string{""}}},       // Object file prefix
