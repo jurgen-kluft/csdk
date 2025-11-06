@@ -188,6 +188,8 @@ var platformVarsWindows = map[string][]denv.Var{
 		{Config: "*-*-test", Append: true, Value: []string{`/DTARGET_TEST`}},       //
 	},
 
+	"build.includes": {},
+
 	"build.warnings": {{Append: true, Value: []string{``}}},
 
 	"build.optimize": {

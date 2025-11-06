@@ -135,6 +135,8 @@ var platformVarsMacOSX = map[string][]denv.Var{
 		{Value: []string{"-DTARGET_TEST"}, Config: "*-*-test", Append: true},
 	},
 
+	"build.includes": {},
+
 	"build.warnings": {{Value: []string{""}}},
 
 	"build.optimize": {
