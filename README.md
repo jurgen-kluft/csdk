@@ -11,3 +11,6 @@ This package provides detailed information for the Clay build system in terms of
 
 Windows is the only platform that needs to provide paths to the include and library directories for the compiler and standard libraries. 
 
+## NOTE
+
+TODO: This package should be merged into ccore
