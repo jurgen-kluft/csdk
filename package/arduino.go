@@ -1,6 +1,8 @@
 package csdk
 
 import (
+	"strings"
+
 	corepkg "github.com/jurgen-kluft/ccode/core"
 	denv "github.com/jurgen-kluft/ccode/denv"
 	cespressif "github.com/jurgen-kluft/ccode/espressif"
@@ -37,6 +39,14 @@ func getVarsArduino(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, 
 			defines = append(defines, "-DTARGET_ESP8266")
 			vars.Prepend("compiler.cpreprocessor.flags", "{build.defines}")
 		}
+
+		// Convert mcu string to be able to be marked as a valid C/C++ define
+		mcuDefine := strings.ToUpper(strings.ReplaceAll(vars.GetFirstOrEmpty("build.mcu"), "-", "_"))
+		defines = append(defines, "-DTARGET_"+mcuDefine)
+
+		// Convert board name string to be able to be marked as a valid C/C++ define
+		boardNameDefine := strings.ToUpper(strings.ReplaceAll(vars.GetFirstOrEmpty("board.name"), "-", "_"))
+		defines = append(defines, "-DTARGET_"+boardNameDefine)
 
 		vars.Append("build.defines", defines...)
 	}
