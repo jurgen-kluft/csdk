@@ -37,20 +37,29 @@ var platformVarsMacOSX = map[string][]denv.Var{
 	"build.exe.suffix": Value(""),       // Executable file suffix (none for macOS)
 
 	// # Frameworks
-	"compiler.frameworks.default": Values("-framework", "Foundation", "-framework", "CoreFoundation", "-framework", "IOKit", "-framework", "CoreServices"),
-	"compiler.frameworks.metal":   Values("-framework", "Metal", "-framework", "MetalPerformanceShaders", "-framework", "MetalKit"),
-	"compiler.frameworks.cocoa":   Values("-framework", "Cocoa"),
-	"compiler.frameworks.appkit":  Values("-framework", "AppKit"),
-	"compiler.frameworks.uikit":   Values("-framework", "UIKit"),
+	"compiler.frameworks.default": Values("-framework", "foundation", "-framework", "corefoundation", "-framework", "iokit", "-framework", "coreservices"),
+	"compiler.frameworks.metal":   Values("-framework", "metal", "-framework", "metalperformanceshaders", "-framework", "metalkit"),
+	"compiler.frameworks.cocoa":   Values("-framework", "cocoa"),
+	"compiler.frameworks.appkit":  Values("-framework", "appkit"),
 
 	// # Frameworks, current
-	"compiler.frameworks": {{Value: []string{"{compiler.frameworks.default}"}}},
+	// { "Foundation" },
+	// { "Cocoa" },
+	// { "Carbon" },
+	// { "Metal" },
+	// { "OpenGL" },
+	// { "IOKit" },
+	// { "AppKit" },
+	// { "CoreVideo" },
+	// { "QuartzCore" },
+
+	"compiler.frameworks": Values("-framework", "foundation", "-framework", "corefoundation", "-framework", "iokit", "-framework", "coreservices", "-framework", "cocoa", "-framework", "appkit", "-framework", "quartzcore"),
 
 	// # Debug Info
-	"compiler.debug_flags": {{Value: []string{"-g3"}}},
+	"compiler.debug_flags": Value("-g3"),
 
 	// # Floating Point
-	"compiler.floating_point_flags": {{Value: []string{"-ffp-model=precise"}}},
+	"compiler.floating_point_flags": Value("-ffp-model=precise"),
 
 	// # Optimization flags
 	"compiler.optimization_flags": {
@@ -99,7 +108,7 @@ var platformVarsMacOSX = map[string][]denv.Var{
 	},
 
 	"compiler.link.flags": {
-		{Value: []string{"{library.paths}", "{library.files}", "{compiler.frameworks}"}},
+		{Value: []string{"{library.paths}", "{library.files}", "-lobjc", "{compiler.frameworks}"}},
 		{Value: []string{"-flto"}, Config: "*-final-*", Append: true},
 	},
 
@@ -158,5 +167,5 @@ var platformVarsMacOSX = map[string][]denv.Var{
 	},
 
 	"build.c_standard":   {{Value: []string{"-std=c17"}}},
-	"build.cpp_standard": {{Value: []string{"-std=c++17"}}},
+	"build.cpp_standard": {{Value: []string{"-std=c++20"}}},
 }
