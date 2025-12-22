@@ -1,16 +1,19 @@
 package csdk
 
 import (
+	"path/filepath"
+
 	corepkg "github.com/jurgen-kluft/ccode/core"
 	denv "github.com/jurgen-kluft/ccode/denv"
+	msvc "github.com/jurgen-kluft/ccode/msvc"
+	winsdk "github.com/jurgen-kluft/ccode/windows-sdk"
 )
 
+var gWinSdk *winsdk.WindowsSDK
+var gMsvc *msvc.MsvcEnvironment
+
 func getVarsWindows(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, vars *corepkg.Vars) {
-
-	// TODO
-	//    - figure out the Windows SDK versions dynamically
-	//    - figure out the MSVC versions dynamically
-
+	// --------------------------------------------------------------------------------------------------
 	// Using the buildTarget and buildConfig, we iterate over the platformVarsWindows map and
 	// set the appropriate variables in the vars object. Some variables may depend on the buildConfig.
 	for key, varList := range platformVarsWindows {
@@ -25,6 +28,94 @@ func getVarsWindows(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, 
 			}
 		}
 	}
+
+	// --------------------------------------------------------------------------------------------------
+	// Organize all the necessary variables of the Windows SDK
+	if gWinSdk == nil {
+		winSdks, err := winsdk.Find(winsdk.WinAppDesktop)
+		if err != nil || winSdks == nil {
+			return
+		}
+
+		winSdk := winsdk.SelectLatestWindowsSDK(winSdks)
+		if winSdk == nil {
+			return
+		}
+
+		gWinSdk = winSdk
+	}
+	// TODO
+
+	// Add the include directories of the Windows SDK to the build.includes variable
+	for _, includePath := range gWinSdk.Layout.Includes {
+		vars.Append("build.includes", "/I"+includePath)
+	}
+
+	// Bin ?
+
+	// Libs ?
+
+	// --------------------------------------------------------------------------------------------------
+	// Organize and prepare all necessary variables of Visual Studio
+	if gMsvc == nil {
+		versions := []msvc.VsVersion{
+			msvc.VsVersion2013,
+			msvc.VsVersion2015,
+			msvc.VsVersion2017,
+			msvc.VsVersion2019,
+			msvc.VsVersion2022,
+		}
+
+		var msvcEnvironment *msvc.MsvcEnvironment
+		for _, version := range versions {
+			msvc, err := msvc.Find(version, "", msvc.WinArchx64, msvc.WinArchx64)
+			if err != nil {
+				continue
+			}
+			if msvc != nil && msvc.Installed {
+				if msvcEnvironment == nil {
+					msvcEnvironment = msvc
+				} else if msvcEnvironment.Version.LessThan(msvc.Version) {
+					msvcEnvironment = msvc
+				}
+			}
+		}
+		gMsvc = msvcEnvironment
+	}
+
+	// TODO
+	msvcPaths := corepkg.NewValueSet()
+	// CompilerPath   string
+	// CompilerBin    string
+	msvcPaths.Add(gMsvc.CompilerPath)
+	vars.Set("compiler.c.cmd", []string{filepath.Join(gMsvc.CompilerPath, gMsvc.CompilerBin)}...)
+	vars.Set("compiler.cpp.cmd", []string{filepath.Join(gMsvc.CompilerPath, gMsvc.CompilerBin)}...)
+	// CcOptions      []string
+	// CxxOptions     []string
+	// IncludePaths   []string
+	for _, includePath := range gMsvc.IncludePaths {
+		vars.Append("build.includes", "/I"+includePath)
+	}
+	// ArchiverPath   string
+	// ArchiverBin    string
+	msvcPaths.Add(gMsvc.ArchiverPath)
+	vars.Set("compiler.lib.cmd", []string{filepath.Join(gMsvc.ArchiverPath, gMsvc.ArchiverBin)}...)
+	// LinkerPath     string
+	// LinkerBin      string
+	msvcPaths.Add(gMsvc.LinkerPath)
+	vars.Set("compiler.link.cmd", []string{filepath.Join(gMsvc.LinkerPath, gMsvc.LinkerBin)}...)
+	// Libs           []string
+	// LibPaths       []string
+	// RcPath         string
+	// RcBin          string
+	// RcOptions      []string
+	// VcToolsVersion string
+	// VsInstallDir   string
+	// VcInstallDir   string
+	// DevEnvDir      string
+	msvcPaths.AddMany(gMsvc.Path...)
+
+	vars.Set("msvc.path", msvcPaths.Values...)
 }
 
 var platformVarsWindows = map[string][]denv.Var{
@@ -51,7 +142,7 @@ var platformVarsWindows = map[string][]denv.Var{
 	"build.objdir": {{Value: []string{`/Fo{build.path}\`}}},
 
 	// # Source dependencies
-	"compiler.source_dependencies": {{Value: []string{`/sourceDependencies`, `"{build.path}"`}}},
+	"compiler.source_dependencies": {{Value: []string{`/sourceDependencies:"{build.path}"`}}},
 
 	// # Debug Info
 	"compiler.debug_flags": {{Config: "debug-*-*", Append: true, Value: []string{`{msvc.cl.generatedebuginfo}`}}},
@@ -74,13 +165,15 @@ var platformVarsWindows = map[string][]denv.Var{
 
 	// # Compile Flags
 	"compiler.cpreprocessor.flags": {{Value: []string{``}}},
-	"compiler.flags":               {{Value: []string{"{msvc.cl.compileonly}", "{msvc.cl.nologo}", "{msvc.cl.diagnostics_columnmode}", "{msvc.cl.diagnostics_emitfullpathofsourcefiles}", "{msvc.cl.buildmultiplesourcefilesconcurrently}", "{compiler.warning_flags}", "{compiler.floating_point_flags}", "{compiler.source_dependencies}", "{compiler.debug_flags}"}}},
-	"compiler.c.flags":             {{Value: []string{"{compiler.flags}"}}},
-	"compiler.cpp.flags":           {{Value: []string{"{compiler.flags}"}}},
-	"compiler.asm.flags":           {{Value: []string{""}}},
-	"compiler.c.link.flags":        {{Value: []string{""}}},
-	"compiler.c.link.libs":         {{Value: []string{""}}},
-	"compiler.lib.flags":           {{Value: []string{""}}},
+	// Removed:
+	// , "{compiler.source_dependencies}"
+	"compiler.flags":        {{Value: []string{"{msvc.cl.compileonly}", "{msvc.cl.nologo}", "{msvc.cl.diagnostics_columnmode}", "{msvc.cl.diagnostics_emitfullpathofsourcefiles}", "{msvc.cl.buildmultiplesourcefilesconcurrently}", "{compiler.warning_flags}", "{compiler.floating_point_flags}", "{compiler.debug_flags}"}}},
+	"compiler.c.flags":      {{Value: []string{"{compiler.flags}"}}},
+	"compiler.cpp.flags":    {{Value: []string{"{compiler.flags}"}}},
+	"compiler.asm.flags":    {{Value: []string{""}}},
+	"compiler.c.link.flags": {{Value: []string{""}}},
+	"compiler.c.link.libs":  {{Value: []string{""}}},
+	"compiler.lib.flags":    {{Value: []string{""}}},
 
 	// # Compiler Extra Flags
 	"compiler.c.extra_flags":      {{Value: []string{""}}},
@@ -89,31 +182,23 @@ var platformVarsWindows = map[string][]denv.Var{
 	"compiler.c.link.extra_flags": {{Value: []string{""}}},
 	"compiler.lib.extra_flags":    {{Value: []string{""}}},
 
-	// # Compilers (Microsoft Visual Studio)
-	"compiler.c.cmd":    {{Value: []string{"cl.exe"}}},
-	"compiler.cpp.cmd":  {{Value: []string{"cl.exe"}}},
-	"compiler.asm.cmd":  {{Value: []string{"cl.exe"}}},
-	"compiler.lib.cmd":  {{Value: []string{"lib.exe"}}},
-	"compiler.link.cmd": {{Value: []string{"link.exe"}}},
-	"compiler.size.cmd": {{Value: []string{"size.exe"}}},
-
 	// ## Compile c files
-	"recipe.c.pattern": {{Value: []string{`"{compiler.c.cmd}"`, "{compiler.c.extra_flags}", "{compiler.c.flags}", "{build.warnings}", "{build.optimize}", "{build.extra_flags}", "{compiler.cpreprocessor.flags}", "{include_paths}"}}},
+	"recipe.c.pattern": {{Value: []string{`{compiler.c.cmd}`, "{compiler.c.extra_flags}", "{compiler.c.flags}", "{build.warnings}", "{build.optimize}", "{build.extra_flags}", "{compiler.cpreprocessor.flags}", "{build.includes}"}}},
 
 	// ## Compile c++ files
-	"recipe.cpp.pattern": {{Value: []string{`"{compiler.cpp.cmd}"`, "{compiler.cpp.extra_flags}", "{compiler.cpp.flags}", "{build.optimize}", "{build.extra_flags}", "{compiler.cpreprocessor.flags}", "{include_paths}"}}},
+	"recipe.cpp.pattern": {{Value: []string{`{compiler.cpp.cmd}`, "{compiler.cpp.extra_flags}", "{compiler.cpp.flags}", "{build.optimize}", "{build.extra_flags}", "{compiler.cpreprocessor.flags}", "{build.includes}"}}},
 
 	// ## Compile asm files
-	"recipe.asm.pattern": {{Value: []string{`"{compiler.c.cmd}"`, "{compiler.S.extra_flags}", "{compiler.S.flags}", "{build.optimize}", "{build.extra_flags}", "{compiler.cpreprocessor.flags}", "{include_paths}"}}},
+	"recipe.asm.pattern": {{Value: []string{`{compiler.c.cmd}`, "{compiler.S.extra_flags}", "{compiler.S.flags}", "{build.optimize}", "{build.extra_flags}", "{compiler.cpreprocessor.flags}", "{build.includes}"}}},
 
 	// ## Create archives/libraries
-	"recipe.lib.pattern": {{Value: []string{`"{compiler.lib.cmd}"`, "{compiler.ar.flags}", "{compiler.ar.extra_flags}"}}},
+	"recipe.lib.pattern": {{Value: []string{`{compiler.lib.cmd}`, "{compiler.ar.flags}", "{compiler.ar.extra_flags}"}}},
 
 	// ## Combine libraries, and object files
-	"recipe.link.pattern": {{Value: []string{`"{compiler.link.cmd}"`, "{compiler.c.link.flags}", "{compiler.c.link.extra_flags}", "{libpaths}", "{libfiles}"}}},
+	"recipe.link.pattern": {{Value: []string{`{compiler.link.cmd}`, "{compiler.c.link.flags}", "{compiler.c.link.extra_flags}", "{libpaths}", "{libfiles}"}}},
 
 	// ## Compute size (text, data, bss)
-	"recipe.size.pattern": {{Value: []string{`"{compiler.size.cmd}"`, "--format=berkeley"}}},
+	"recipe.size.pattern": {{Value: []string{`{compiler.size.cmd}`, "--format=berkeley"}}},
 
 	// ## Microsoft Visual Studio compiler (cl) flags
 	"msvc.cl.compileonly":                           {{Value: []string{`/c`}}},                  // Compile only; do not link. This is useful for generating object files without creating an executable.
@@ -176,16 +261,16 @@ var platformVarsWindows = map[string][]denv.Var{
 	// --------------------------------------------------------------------------------------------------
 	// # Build Options
 
-	"build.code_debug":  {{Value: []string{`0`}}},                                                   // Code debug level (0: none, 1: basic, 2: full)
-	"build.extra_flags": {{Append: true, Value: []string{`/DCORE_DEBUG_LEVEL={build.code_debug}`}}}, //
-	"build.extra_libs":  {{Append: true, Value: []string{``}}},                                      //
+	"build.code_debug":  {{Value: []string{`0`}}},                                                       // Code debug level (0: none, 1: basic, 2: full)
+	"build.extra_flags": {{Append: true, Value: []string{`/D`, `CORE_DEBUG_LEVEL={build.code_debug}`}}}, //
+	"build.extra_libs":  {{Append: true, Value: []string{``}}},                                          //
 
 	"build.defines": {
-		{Config: "*-*-*", Append: true, Value: []string{`/DTARGET_PC`}},            // Define target as PC
-		{Config: "debug-*-*", Append: true, Value: []string{`/DTARGET_DEBUG`}},     //
-		{Config: "release-*-*", Append: true, Value: []string{`/DTARGET_RELEASE`}}, //
-		{Config: "*-final-*", Append: true, Value: []string{`/DTARGET_FINAL`}},     //
-		{Config: "*-*-test", Append: true, Value: []string{`/DTARGET_TEST`}},       //
+		{Config: "*-*-*", Append: true, Value: []string{`/D`, `TARGET_PC`}},            // Define target as PC
+		{Config: "debug-*-*", Append: true, Value: []string{`/D`, `TARGET_DEBUG`}},     //
+		{Config: "release-*-*", Append: true, Value: []string{`/D`, `TARGET_RELEASE`}}, //
+		{Config: "*-final-*", Append: true, Value: []string{`/D`, `TARGET_FINAL`}},     //
+		{Config: "*-*-test", Append: true, Value: []string{`/D`, `TARGET_TEST`}},       //
 	},
 
 	"build.includes": {},
