@@ -44,12 +44,7 @@ func getVarsArduino(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, 
 
 		defines = append(defines, "-DBOARD_HAS_PSRAM")
 		vars.Set("build.psram_type", "opi")
-
-		// vars.Set("build.partitions", "huge_app")
-		// vars.Set("build.flash.mode", "dio")
-		// vars.Set("build.boot", "dio")
-		// vars.Set("build.boot_freq", "80m")
-		// vars.Set("build.flash_freq", "80m")
+		vars.Set("upload.speed", "115200")
 
 		// Convert mcu string to be able to be marked as a valid C/C++ define
 		mcuDefine := strings.ToUpper(strings.ReplaceAll(vars.GetFirstOrEmpty("build.mcu"), "-", "_"))
