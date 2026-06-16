@@ -191,7 +191,7 @@ var platformVarsWindows = map[string][]denv.Var{
 	"compiler.c.extra_flags":      {{Value: []string{""}}},
 	"compiler.cpp.extra_flags":    {{Value: []string{""}}},
 	"compiler.asm.extra_flags":    {{Value: []string{""}}},
-	"compiler.c.link.extra_flags": {{Value: []string{"/SUBSYSTEM:CONSOLE", "/ERRORREPORT:PROMPT", "/DYNAMICBASE", "/NXCOMPAT", "/nologo", "/MACHINE:X64"}}},
+	"compiler.c.link.extra_flags": {{Value: []string{"/SUBSYSTEM:CONSOLE", "/ERRORREPORT:PROMPT", "/DYNAMICBASE", "/NXCOMPAT", "/nologo", "/MACHINE:X64", "{link.generatedebuginfo}"}}},
 	"compiler.lib.extra_flags":    {{Value: []string{""}}},
 
 	// ## Compile c files
@@ -279,9 +279,9 @@ var platformVarsWindows = map[string][]denv.Var{
 
 	"build.defines": {
 		{Value: []string{"/D", "TARGET_PC"}},
-		{Value: []string{"/D", "TARGET_DEBUG"}, Config: "debug-*-*", Append: true},
-		{Value: []string{"/D", "TARGET_RELEASE"}, Config: "release-*-*", Append: true},
-		{Value: []string{"/D", "TARGET_FINAL"}, Config: "*-final-*", Append: true},
+		{Value: []string{"/D", "TARGET_DEBUG", "/D", "_DEBUG"}, Config: "debug-*-*", Append: true},
+		{Value: []string{"/D", "TARGET_RELEASE", "/D", "NDEBUG"}, Config: "release-*-*", Append: true},
+		{Value: []string{"/D", "TARGET_FINAL", "/D", "NDEBUG"}, Config: "*-final-*", Append: true},
 		{Value: []string{"/D", "TARGET_TEST"}, Config: "*-*-test", Append: true},
 	},
 
@@ -299,6 +299,7 @@ var platformVarsWindows = map[string][]denv.Var{
 	},
 
 	"build.exception_handling": {{Config: "*-*-test", Value: []string{`{msvc.cl.enable_exceptionhandling}`}}}, // Enable C++ exception handling for test builds
+	"link.generatedebuginfo":   {{Config: "debug-*-*", Value: []string{`{msvc.link.generatedebuginfo}`}}},     // Generate debug information for debug builds
 
 	"build.inline_expansion":    {{Value: []string{`{msvc.cl.inline_expansion_level_2}`}}},  //
 	"build.intrinsic_functions": {{Value: []string{`{msvc.cl.enable_intrinsicfunctions}`}}}, //
