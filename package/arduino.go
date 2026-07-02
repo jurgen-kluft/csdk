@@ -13,17 +13,23 @@ func getVarsArduino(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, 
 		cespressif.GetVars(tc, hardwareId, vars)
 
 		// Override some specific settings for Arduino based on build configuration
+
+		// 0: None (ARDUHAL_LOG_LEVEL_NONE)
+		// 1: Error (ARDUHAL_LOG_LEVEL_ERROR)
+		// 2: Warning (ARDUHAL_LOG_LEVEL_WARN)
+		// 3: Info (ARDUHAL_LOG_LEVEL_INFO)
+		// 4: Debug (ARDUHAL_LOG_LEVEL_DEBUG)
+		// 5: Verbose (ARDUHAL_LOG_LEVEL_VERBOSE)
+
 		defines := make([]string, 0, 8)
 		if buildConfig.IsDebug() {
 			vars.Set("compiler.optimization_flags", "{compiler.optimization_flags.debug}")
 			defines = append(defines, "-DTARGET_DEBUG")
-			defines = append(defines, "-DCORE_DEBUG_LEVEL=1")
-			vars.Set("build.code_debug", "1")
+			vars.Set("build.code_debug", "4")
 		} else if buildConfig.IsRelease() {
 			vars.Set("compiler.optimization_flags", "{compiler.optimization_flags.release}")
 			defines = append(defines, "-DTARGET_RELEASE")
-			defines = append(defines, "-DCORE_DEBUG_LEVEL=0")
-			vars.Set("build.code_debug", "0")
+			vars.Set("build.code_debug", "1")
 		}
 
 		if buildConfig.IsFinal() {
@@ -37,13 +43,17 @@ func getVarsArduino(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, 
 		defines = append(defines, "-DTARGET_ARDUINO")
 		if buildTarget.Esp32() {
 			defines = append(defines, "-DTARGET_ESP32")
+
+			if strings.Contains(strings.ToLower(hardwareId), "esp32s3") {
+				defines = append(defines, "-DBOARD_HAS_PSRAM")
+				vars.Set("build.psram_type", "opi")
+			}
+
 		} else if buildTarget.Esp8266() {
 			defines = append(defines, "-DTARGET_ESP8266")
 			vars.Prepend("compiler.cpreprocessor.flags", "{build.defines}")
 		}
 
-		defines = append(defines, "-DBOARD_HAS_PSRAM")
-		vars.Set("build.psram_type", "opi")
 		vars.Set("upload.speed", "115200")
 
 		// Convert mcu string to be able to be marked as a valid C/C++ define
