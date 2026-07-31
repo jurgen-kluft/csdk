@@ -1,7 +1,7 @@
 package csdk
 
 import (
-	denv "github.com/jurgen-kluft/ccode/denv"
+	denv "github.com/jurgen-kluft/gide/denv"
 )
 
 const (
