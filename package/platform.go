@@ -1,8 +1,8 @@
 package csdk
 
 import (
-	corepkg "github.com/jurgen-kluft/ccode/core"
-	denv "github.com/jurgen-kluft/ccode/denv"
+	corepkg "github.com/jurgen-kluft/gcore"
+	denv "github.com/jurgen-kluft/gide/denv"
 )
 
 // The user has to set add the following variables to the returned Vars object:
