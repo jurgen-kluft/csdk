@@ -3,9 +3,9 @@ package csdk
 import (
 	"strings"
 
-	corepkg "github.com/jurgen-kluft/ccode/core"
-	denv "github.com/jurgen-kluft/ccode/denv"
-	cespressif "github.com/jurgen-kluft/ccode/espressif"
+	cespressif "github.com/jurgen-kluft/csdk/espressif"
+	corepkg "github.com/jurgen-kluft/gcore"
+	denv "github.com/jurgen-kluft/gide/denv"
 )
 
 func getVarsArduino(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, hardwareId string, vars *corepkg.Vars) {
