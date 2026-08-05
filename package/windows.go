@@ -3,10 +3,10 @@ package csdk
 import (
 	"path/filepath"
 
-	corepkg "github.com/jurgen-kluft/gcore"
-	denv "github.com/jurgen-kluft/gide/denv"
-	"github.com/jurgen-kluft/gide/msdev/msvc"
-	"github.com/jurgen-kluft/gide/msdev/winsdk"
+	corepkg "github.com/jurgen-kluft/go-core"
+	denv "github.com/jurgen-kluft/go-ide/denv"
+	"github.com/jurgen-kluft/go-ide/msdev/msvc"
+	"github.com/jurgen-kluft/go-ide/msdev/winsdk"
 )
 
 var gWinSdk *winsdk.WindowsSDK

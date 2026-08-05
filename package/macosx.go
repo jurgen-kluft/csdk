@@ -1,8 +1,8 @@
 package csdk
 
 import (
-	corepkg "github.com/jurgen-kluft/gcore"
-	denv "github.com/jurgen-kluft/gide/denv"
+	corepkg "github.com/jurgen-kluft/go-core"
+	denv "github.com/jurgen-kluft/go-ide/denv"
 )
 
 func getVarsMac(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, vars *corepkg.Vars) {

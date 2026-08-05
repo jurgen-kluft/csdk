@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	cespressif "github.com/jurgen-kluft/csdk/espressif"
-	corepkg "github.com/jurgen-kluft/gcore"
-	denv "github.com/jurgen-kluft/gide/denv"
+	corepkg "github.com/jurgen-kluft/go-core"
+	denv "github.com/jurgen-kluft/go-ide/denv"
 )
 
 func getVarsArduino(buildTarget denv.BuildTarget, buildConfig denv.BuildConfig, hardwareId string, vars *corepkg.Vars) {

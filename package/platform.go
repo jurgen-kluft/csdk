@@ -1,8 +1,8 @@
 package csdk
 
 import (
-	corepkg "github.com/jurgen-kluft/gcore"
-	denv "github.com/jurgen-kluft/gide/denv"
+	corepkg "github.com/jurgen-kluft/go-core"
+	denv "github.com/jurgen-kluft/go-ide/denv"
 )
 
 // The user has to set add the following variables to the returned Vars object:
