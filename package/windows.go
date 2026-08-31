@@ -191,7 +191,7 @@ var platformVarsWindows = map[string][]denv.Var{
 	"compiler.c.extra_flags":      {{Value: []string{""}}},
 	"compiler.cpp.extra_flags":    {{Value: []string{""}}},
 	"compiler.asm.extra_flags":    {{Value: []string{""}}},
-	"compiler.c.link.extra_flags": {{Value: []string{"/SUBSYSTEM:CONSOLE", "/ERRORREPORT:PROMPTIMMEDIATELY", "/DYNAMICBASE", "/NXCOMPAT", "/nologo", "/MACHINE:X64", "{link.generatedebuginfo}"}}},
+	"compiler.c.link.extra_flags": {{Value: []string{"/SUBSYSTEM:CONSOLE", "/ERRORREPORT:PROMPT", "/DYNAMICBASE", "/NXCOMPAT", "/nologo", "/MACHINE:X64", "{link.generatedebuginfo}"}}},
 	"compiler.lib.extra_flags":    {{Value: []string{""}}},
 
 	// ## Compile c files
